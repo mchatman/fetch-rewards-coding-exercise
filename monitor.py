@@ -27,22 +27,17 @@ def load_config(file_path):
 
 # Function to perform health checks
 def check_health(endpoint):
-    url = endpoint["url"]
     name = endpoint["name"]
-    method = endpoint.get("method")
-    headers = endpoint.get("headers")
-    body = endpoint.get("body")
+    url = endpoint["url"]  # Always a valid URL
+    method = endpoint.get("method", "GET")  # Default to GET if not specified
+    headers = endpoint.get("headers", {})
+    body = json.loads(endpoint.get("body", "{}"))  # Always a valid JSON object
+
+    start_time = time.time()
 
     try:
-        body = json.loads(body)
-    except json.JSONDecodeError:
-        pass
-
-    try:
-        start_time = time.time()
-
         response = requests.request(
-            method=method, url=url, headers=headers, json=body, timeout=REQUEST_TIMEOUT
+            method=method, url=url, headers=headers, json=body, timeout=1.0
         )
 
         response_time = time.time() - start_time
@@ -54,7 +49,7 @@ def check_health(endpoint):
             return "UP"
         else:
             reason = (
-                "Response time exceeded 500ms"
+                f"Response time exceeded {REQUEST_TIMEOUT * 1000}ms"
                 if response_time > REQUEST_TIMEOUT
                 else f"Status code: {response.status_code}"
             )
@@ -92,11 +87,11 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) != 2:
-        print("Usage: python monitor.py <config_file_path>")
+        logger.error("Usage: python monitor.py <config_file_path>")
         sys.exit(1)
 
     config_file = sys.argv[1]
     try:
         monitor_endpoints(config_file)
     except KeyboardInterrupt:
-        print("\nMonitoring stopped by user.")
+        logger.info("\nMonitoring stopped by user.")

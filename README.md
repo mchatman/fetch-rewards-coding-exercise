@@ -37,3 +37,8 @@ The configuration file should be a YAML file with the following format:
 **Issue:**The `body` field in the configuration was not being deserialized as JSON before being passed to the `requests` library.
 
 **Fix:**Deserialized the `body` field as JSON using the json library before passing it to the `requests` library.
+
+### 2. Default method not specified
+**Issue:**The `method` field may not be specified, so the default method was not being used in the `check_health` function.
+
+**Fix:**Specified the default method as GET.
