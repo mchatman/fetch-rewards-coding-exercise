@@ -1,28 +1,68 @@
-import requests
+import json
+import logging
 import time
+from collections import defaultdict
+
+import requests
 import yaml
 
-from collections import defaultdict
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+    ],
+)
+
+logger = logging.getLogger(__name__)
+
+REQUEST_TIMEOUT = 0.5  # Default timeout is 0.5 seconds (500ms)
+
 
 # Function to load configuration from the YAML file
 def load_config(file_path):
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         return yaml.safe_load(file)
+
 
 # Function to perform health checks
 def check_health(endpoint):
-    url = endpoint['url']
-    method = endpoint.get('method')
-    headers = endpoint.get('headers')
+    url = endpoint["url"]
+    name = endpoint["name"]
+    method = endpoint.get("method")
+    headers = endpoint.get("headers")
+    body = endpoint.get("body")
 
     try:
-        response = requests.request(method, url, headers=headers, json=body)
-        if 200 <= response.status_code < 300:
+        body = json.loads(body)
+    except json.JSONDecodeError:
+        pass
+
+    try:
+        start_time = time.time()
+
+        response = requests.request(
+            method=method, url=url, headers=headers, json=body, timeout=REQUEST_TIMEOUT
+        )
+
+        response_time = time.time() - start_time
+
+        if 200 <= response.status_code < 300 and response_time <= REQUEST_TIMEOUT:
+            logger.info(
+                f"Endpoint '{name}' is UP (Status Code: {response.status_code}, Response Time: {response_time:.3f}s)"
+            )
             return "UP"
         else:
+            reason = (
+                "Response time exceeded 500ms"
+                if response_time > REQUEST_TIMEOUT
+                else f"Status code: {response.status_code}"
+            )
+            logger.info(f"Endpoint '{name}' is DOWN ({reason})")
             return "DOWN"
     except requests.RequestException:
         return "DOWN"
+
 
 # Main function to monitor endpoints
 def monitor_endpoints(file_path):
@@ -41,10 +81,11 @@ def monitor_endpoints(file_path):
         # Log cumulative availability percentages
         for domain, stats in domain_stats.items():
             availability = round(100 * stats["up"] / stats["total"])
-            print(f"{domain} has {availability}% availability percentage")
+            logger.info(f"{domain} has {availability}% availability percentage")
 
-        print("---")
+        logger.info("---")
         time.sleep(15)
+
 
 # Entry point of the program
 if __name__ == "__main__":

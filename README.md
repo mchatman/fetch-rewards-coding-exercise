@@ -30,3 +30,10 @@ The configuration file should be a YAML file with the following format:
   headers: <headers> # Optional
   body: <body> # Optional
 ```
+
+## Issues Identified and Changes Made
+
+### 1. Deserialize JSON body failure
+**Issue:**The `body` field in the configuration was not being deserialized as JSON before being passed to the `requests` library.
+
+**Fix:**Deserialized the `body` field as JSON using the json library before passing it to the `requests` library.
