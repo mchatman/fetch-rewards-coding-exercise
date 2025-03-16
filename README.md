@@ -31,6 +31,13 @@ The configuration file should be a YAML file with the following format:
   body: <body> # Optional
 ```
 
+## Testing
+
+1. Run tests
+```bash
+python -m pytest tests.py
+```
+
 ## Issues Identified and Changes Made
 
 ### 1. Deserialize JSON body failure
@@ -42,3 +49,8 @@ The configuration file should be a YAML file with the following format:
 **Issue:**The `method` field may not be specified, so the default method was not being used in the `check_health` function.
 
 **Fix:**Specified the default method as GET.
+
+### 3. Handle invalid YAML endpoint config
+**Issue:**The `load_config` function did not handle invalid YAML endpoint configs.
+
+**Fix:**Added error handling for invalid YAML endpoint configs.

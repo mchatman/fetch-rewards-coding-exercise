@@ -21,8 +21,15 @@ REQUEST_TIMEOUT = 0.5  # Default timeout is 0.5 seconds (500ms)
 
 # Function to load configuration from the YAML file
 def load_config(file_path):
-    with open(file_path, "r") as file:
-        return yaml.safe_load(file)
+    try:
+        with open(file_path, "r") as file:
+            return yaml.safe_load(file)
+    except FileNotFoundError:
+        logger.error(f"Configuration file not found: {file_path}")
+        return None
+    except yaml.YAMLError:
+        logger.error(f"Error parsing YAML file: {file_path}")
+        return None
 
 
 # Function to perform health checks
@@ -62,6 +69,9 @@ def check_health(endpoint):
 # Main function to monitor endpoints
 def monitor_endpoints(file_path):
     config = load_config(file_path)
+    if not config:
+        return
+
     domain_stats = defaultdict(lambda: {"up": 0, "total": 0})
 
     while True:
