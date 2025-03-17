@@ -1,6 +1,9 @@
 from unittest.mock import mock_open, patch
 
-from monitor import check_health, load_config, parse_domain
+import pytest
+
+from monitor import (check_health, load_config, parse_domain,
+                     validate_endpoint_config)
 
 
 def test_yaml_endpoint_config():
@@ -112,6 +115,22 @@ def test_parse_domain():
     domain = parse_domain(url)
 
     assert domain == "example.com"
+
+
+def test_validate_endpoint_config():
+    endpoint = {
+        "name": "test endpoint",
+        "url": "http://example.com",
+    }
+
+    assert validate_endpoint_config(endpoint)
+
+
+def test_invalid_endpoint_config():
+    endpoint = {
+        "url": "http://example.com",
+    }
+    assert not validate_endpoint_config(endpoint)
 
 
 if __name__ == "__main__":

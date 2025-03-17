@@ -2,6 +2,7 @@ import json
 import logging
 import time
 from collections import defaultdict
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 import requests
@@ -18,13 +19,37 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 REQUEST_TIMEOUT = 0.5  # Default timeout is 0.5 seconds (500ms)
+MONITOR_INTERVAL = 15
+MIN_SUCCESS_STATUS_CODE = 200
+MAX_SUCCESS_STATUS_CODE = 299
+
+
+def validate_endpoint_config(endpoint: Dict[str, Any]) -> bool:
+    if not endpoint.get("name") or not endpoint.get("url"):
+        return False
+    return True
 
 
 # Function to load configuration from the YAML file
-def load_config(file_path):
+def load_config(file_path: str) -> Optional[list[Dict[str, Any]]]:
+    """
+    Load configuration from a YAML file.
+    Args:
+        file_path (str): Path to the YAML configuration file.
+    Returns:
+        Optional[list[Dict[str, Any]]]: List of endpoints if successful, None otherwise.
+    """
     try:
         with open(file_path, "r") as file:
-            return yaml.safe_load(file)
+            config = yaml.safe_load(file)
+
+            for endpoint in config:
+                if not validate_endpoint_config(endpoint):
+                    logger.error(f"Invalid endpoint configuration: name or url missing")
+                    return None
+
+            return config
+
     except FileNotFoundError:
         logger.error(f"Configuration file not found: {file_path}")
         return None
@@ -33,7 +58,14 @@ def load_config(file_path):
         return None
 
 
-def parse_domain(url):
+def parse_domain(url: str) -> str:
+    """
+    Parse the domain from a URL.
+    Args:
+        url (str): The URL to parse.
+    Returns:
+        str: The domain name.
+    """
     parsed_url = urlparse(url)
     domain = parsed_url.netloc
 
@@ -41,7 +73,14 @@ def parse_domain(url):
 
 
 # Function to perform health checks
-def check_health(endpoint):
+def check_health(endpoint: Dict[str, Any]) -> str:
+    """
+    Perform a health check on the given endpoint.
+    Args:
+        endpoint (Dict[str, Any]): The endpoint to check.
+    Returns:
+        str: "UP" if the endpoint is healthy, "DOWN" otherwise.
+    """
     name = endpoint["name"]
     url = endpoint["url"]  # Always a valid URL
     method = endpoint.get("method", "GET")  # Default to GET if not specified
@@ -57,7 +96,10 @@ def check_health(endpoint):
 
         response_time = time.time() - start_time
 
-        if 200 <= response.status_code < 300 and response_time <= REQUEST_TIMEOUT:
+        if (
+            MIN_SUCCESS_STATUS_CODE <= response.status_code <= MAX_SUCCESS_STATUS_CODE
+            and response_time <= REQUEST_TIMEOUT
+        ):
             logger.info(
                 f"Endpoint '{name}' is UP (Status Code: {response.status_code}, Response Time: {response_time:.3f}s)"
             )
@@ -75,7 +117,12 @@ def check_health(endpoint):
 
 
 # Main function to monitor endpoints
-def monitor_endpoints(file_path):
+def monitor_endpoints(file_path: str) -> None:
+    """
+    Monitor the availability of endpoints based on a YAML configuration file.
+    Args:
+        file_path (str): Path to the YAML configuration file.
+    """
     config = load_config(file_path)
     if not config:
         return
@@ -83,6 +130,8 @@ def monitor_endpoints(file_path):
     domain_stats = defaultdict(lambda: {"up": 0, "total": 0})
 
     while True:
+        start_time = time.time()
+
         for endpoint in config:
             domain = parse_domain(endpoint["url"])
             result = check_health(endpoint)
@@ -96,8 +145,10 @@ def monitor_endpoints(file_path):
             availability = round(100 * stats["up"] / stats["total"])
             logger.info(f"{domain} has {availability}% availability percentage")
 
+        elapsed_time = time.time() - start_time
+        sleep_time = max(MONITOR_INTERVAL - elapsed_time, 0)
         logger.info("---")
-        time.sleep(15)
+        time.sleep(sleep_time)
 
 
 # Entry point of the program

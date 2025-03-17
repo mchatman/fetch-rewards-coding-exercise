@@ -72,3 +72,13 @@ python -m pytest tests.py
 **Issue:**The `parse_domain` function handles removing ports in the URL, causing the same domain to be counted separately.
 
 **Fix:**Created the `parse_domain` function to remove ports from the URL.
+
+### 6. Logs availability duration accuracy
+**Issue:**The `monitor_endpoints` function did not log the availability duration exactly at 15 seconds. Sleep time did not account for the time taken to process the endpoints.
+
+**Fix:**Fixed the `monitor_endpoints` function to log the availability duration accurately by accounting for the time taken to process the endpoints.
+
+### 7. Validate endpoint config
+**Issue:**The `load_config` function did not validate the endpoint config causing a KeyError.
+
+**Fix:**Added validation for the `name` and `url` fields in the `load_config` function. If either is missing, the function returns None.
