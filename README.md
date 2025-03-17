@@ -87,3 +87,8 @@ python -m pytest tests.py
 **Issue:**The command-line interface did not allow for customization of monitoring parameters and a help message.
 
 **Fix:**Added a help message and allowed customization of monitoring parameters using argparse.
+
+### 9. HTTP Requests are blocking
+**Issue:**The HTTP requests were blocking, which prevented parallel processing of endpoints.
+
+**Fix:**Used asyncio to perform HTTP requests in parallel to meet the 15 second interval requirement. As more endpoints are added, the interval will be met.

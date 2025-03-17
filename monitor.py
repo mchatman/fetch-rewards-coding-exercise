@@ -1,12 +1,13 @@
 import argparse
+import asyncio
 import json
 import logging
 import time
 from collections import defaultdict
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlparse
 
-import requests
+import aiohttp
 import yaml
 
 logging.basicConfig(
@@ -74,52 +75,76 @@ def parse_domain(url: str) -> str:
 
 
 # Function to perform health checks
-def check_health(endpoint: Dict[str, Any]) -> str:
+async def check_health(
+    session: aiohttp.ClientSession, endpoint: Dict[str, Any]
+) -> Tuple[str, str]:
     """
     Perform a health check on the given endpoint.
     Args:
+        session (aiohttp.ClientSession): The session to use for the request.
         endpoint (Dict[str, Any]): The endpoint to check.
     Returns:
-        str: "UP" if the endpoint is healthy, "DOWN" otherwise.
+        Tuple[str, str]: A tuple containing the status and domain.
     """
     name = endpoint["name"]
     url = endpoint["url"]  # Always a valid URL
-    method = endpoint.get("method", "GET")  # Default to GET if not specified
+    domain = parse_domain(url)
+    method = endpoint.get("method", "GET").upper()  # Default to GET if not specified
     headers = endpoint.get("headers", {})
     body = json.loads(endpoint.get("body", "{}"))  # Always a valid JSON object
 
     start_time = time.time()
 
     try:
-        response = requests.request(
-            method=method, url=url, headers=headers, json=body, timeout=REQUEST_TIMEOUT
+        async with session.request(
+            method, url, headers=headers, json=body, timeout=REQUEST_TIMEOUT
+        ) as response:
+            response_time = time.time() - start_time
+
+            if (
+                MIN_SUCCESS_STATUS_CODE <= response.status <= MAX_SUCCESS_STATUS_CODE
+                and response_time <= REQUEST_TIMEOUT
+            ):
+                logger.info(
+                    f"Endpoint '{name}' is UP (Status Code: {response.status}, Response Time: {response_time:.3f}s)"
+                )
+                return "UP", domain
+            else:
+                reason = (
+                    f"Response time exceeded {REQUEST_TIMEOUT * 1000}ms"
+                    if response_time > REQUEST_TIMEOUT
+                    else f"Status code: {response.status}"
+                )
+                logger.info(f"Endpoint '{name}' is DOWN ({reason})")
+                return "DOWN", domain
+    except asyncio.TimeoutError:
+        logger.info(
+            f"Endpoint '{name}' is DOWN (Response time exceeded {REQUEST_TIMEOUT * 1000}ms)"
         )
-
-        response_time = time.time() - start_time
-
-        if (
-            MIN_SUCCESS_STATUS_CODE <= response.status_code <= MAX_SUCCESS_STATUS_CODE
-            and response_time <= REQUEST_TIMEOUT
-        ):
-            logger.info(
-                f"Endpoint '{name}' is UP (Status Code: {response.status_code}, Response Time: {response_time:.3f}s)"
-            )
-            return "UP"
-        else:
-            reason = (
-                f"Response time exceeded {REQUEST_TIMEOUT * 1000}ms"
-                if response_time > REQUEST_TIMEOUT
-                else f"Status code: {response.status_code}"
-            )
-            logger.info(f"Endpoint '{name}' is DOWN ({reason})")
-            return "DOWN"
-    except requests.RequestException as e:
+        return "DOWN", domain
+    except Exception as e:
         logger.error(f"Endpoint '{name}' is DOWN (Exception: {str(e)})")
-        return "DOWN"
+        return "DOWN", domain
+
+
+# Function to check all endpoints in parallel
+async def check_all_endpoints(endpoints: list[Dict[str, Any]]) -> list[Tuple[str, str]]:
+    """
+    Check all endpoints in parallel using asyncio.
+
+    Args:
+        endpoints (list[Dict[str, Any]]): List of endpoint configurations.
+
+    Returns:
+        list[Tuple[str, str]]: List of (status, domain) tuples.
+    """
+    async with aiohttp.ClientSession() as session:
+        tasks = [check_health(session, endpoint) for endpoint in endpoints]
+        return await asyncio.gather(*tasks)
 
 
 # Main function to monitor endpoints
-def monitor_endpoints(file_path: str) -> None:
+async def monitor_endpoints(file_path: str) -> None:
     """
     Monitor the availability of endpoints based on a YAML configuration file.
     Args:
@@ -134,12 +159,11 @@ def monitor_endpoints(file_path: str) -> None:
     while True:
         start_time = time.time()
 
-        for endpoint in config:
-            domain = parse_domain(endpoint["url"])
-            result = check_health(endpoint)
+        results = await check_all_endpoints(config)
 
+        for status, domain in results:
             domain_stats[domain]["total"] += 1
-            if result == "UP":
+            if status == "UP":
                 domain_stats[domain]["up"] += 1
 
         # Log cumulative availability percentages
@@ -165,6 +189,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        monitor_endpoints(args.config_file)
+        asyncio.run(monitor_endpoints(args.config_file))
     except KeyboardInterrupt:
         logger.info("\nMonitoring stopped by user.")

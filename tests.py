@@ -1,8 +1,10 @@
-from unittest.mock import mock_open, patch
+from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
+import aiohttp
 import pytest
 
-from monitor import check_health, load_config, parse_domain, validate_endpoint_config
+from monitor import (REQUEST_TIMEOUT, check_health, load_config, parse_domain,
+                     validate_endpoint_config)
 
 
 def test_yaml_endpoint_config():
@@ -59,7 +61,8 @@ def test_missing_yaml_file():
     assert config is None
 
 
-def test_json_body_decoding():
+@pytest.mark.asyncio
+async def test_json_body_decoding():
     endpoint = {
         "name": "test endpoint",
         "url": "http://example.com",
@@ -68,42 +71,62 @@ def test_json_body_decoding():
         "body": '{"key": "value"}',
     }
 
-    with patch("requests.request") as mock_request:
-        mock_request.return_value.status_code = 200
-        result = check_health(endpoint)
+    # https://stackoverflow.com/questions/60142034/testing-and-mocking-asynchronous-code-that-uses-async-with-statement
+    mock_response = MagicMock()
+    mock_response.status = 200
 
-        assert result == "UP"
-        assert mock_request.call_args[1]["json"] == {"key": "value"}
-        mock_request.assert_called_once_with(
-            method=endpoint["method"],
-            url=endpoint["url"],
-            headers=endpoint["headers"],
-            json={"key": "value"},
-            timeout=1.0,
-        )
+    mock_request = AsyncMock()
+    mock_request.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_request.__aexit__ = AsyncMock(return_value=False)
+
+    mock_session = MagicMock(spec=aiohttp.ClientSession)
+    mock_session.request.return_value = mock_request
+
+    status, domain = await check_health(mock_session, endpoint)
+
+    assert status == "UP"
+    assert domain == parse_domain(endpoint["url"])
+
+    mock_session.request.assert_called_once_with(
+        endpoint["method"].upper(),
+        endpoint["url"],
+        headers=endpoint["headers"],
+        json={"key": "value"},
+        timeout=REQUEST_TIMEOUT,
+    )
 
 
-def test_method_default_get():
+@pytest.mark.asyncio
+async def test_method_default_get():
     endpoint = {
         "name": "test endpoint",
         "url": "http://example.com",
         "body": "{}",
     }
 
-    with patch("requests.request") as mock_request:
-        mock_request.return_value.status_code = 200
-        result = check_health(endpoint)
+    # https://stackoverflow.com/questions/60142034/testing-and-mocking-asynchronous-code-that-uses-async-with-statement
+    mock_response = MagicMock()
+    mock_response.status = 200
 
-        assert result == "UP"
-        assert mock_request.call_args[1]["method"] == "GET"
+    mock_request = AsyncMock()
+    mock_request.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_request.__aexit__ = AsyncMock(return_value=False)
 
-        mock_request.assert_called_once_with(
-            method="GET",
-            url=endpoint["url"],
-            headers={},
-            json={},
-            timeout=1.0,
-        )
+    mock_session = MagicMock(spec=aiohttp.ClientSession)
+    mock_session.request.return_value = mock_request
+
+    status, domain = await check_health(mock_session, endpoint)
+
+    assert status == "UP"
+    assert domain == parse_domain(endpoint["url"])
+
+    mock_session.request.assert_called_once_with(
+        "GET",
+        endpoint["url"],
+        headers={},
+        json={},
+        timeout=REQUEST_TIMEOUT,
+    )
 
 
 def test_parse_domain():
