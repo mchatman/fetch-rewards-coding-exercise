@@ -7,11 +7,19 @@ This tool monitors the availability of HTTP endpoints based on a YAML configurat
 1. Clone the repository
 ```bash
 git clone https://github.com/mchatman/fetch-rewards-coding-exercise.git
+cd fetch-rewards-coding-exercise
 ```
 
 2. Install required dependencies
 ```bash
 pip install -r requirements.txt
+```
+
+3. Create a virtual environment
+```bash
+python -m venv venv
+source venv/bin/activate (on Linux/Mac)
+.\venv\Scripts\activate (on Windows)
 ```
 
 ## Usage
@@ -54,3 +62,13 @@ python -m pytest tests.py
 **Issue:**The `load_config` function did not handle invalid YAML endpoint configs.
 
 **Fix:**Added error handling for invalid YAML endpoint configs.
+
+### 4. Replaced print statements with logging
+**Issue:**The script used `print()` statements for output which lacked log severity levels.
+
+**Fix:**Replaced all print statements with logging including log levels and structured output.
+
+### 5. Removes port from domain
+**Issue:**The `parse_domain` function handles removing ports in the URL, causing the same domain to be counted separately.
+
+**Fix:**Created the `parse_domain` function to remove ports from the URL.

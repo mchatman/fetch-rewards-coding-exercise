@@ -2,6 +2,7 @@ import json
 import logging
 import time
 from collections import defaultdict
+from urllib.parse import urlparse
 
 import requests
 import yaml
@@ -30,6 +31,13 @@ def load_config(file_path):
     except yaml.YAMLError:
         logger.error(f"Error parsing YAML file: {file_path}")
         return None
+
+
+def parse_domain(url):
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc
+
+    return domain.split(":")[0]
 
 
 # Function to perform health checks
@@ -76,7 +84,7 @@ def monitor_endpoints(file_path):
 
     while True:
         for endpoint in config:
-            domain = endpoint["url"].split("//")[-1].split("/")[0]
+            domain = parse_domain(endpoint["url"])
             result = check_health(endpoint)
 
             domain_stats[domain]["total"] += 1

@@ -1,6 +1,6 @@
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
-from monitor import check_health, load_config
+from monitor import check_health, load_config, parse_domain
 
 
 def test_yaml_endpoint_config():
@@ -29,6 +29,7 @@ def test_yaml_endpoint_config():
             "body": "{}",
         }
     ]
+
 
 def test_invalid_yaml_endpoint_config():
     """
@@ -84,7 +85,7 @@ def test_method_default_get():
     endpoint = {
         "name": "test endpoint",
         "url": "http://example.com",
-        "body": '{}',
+        "body": "{}",
     }
 
     with patch("requests.request") as mock_request:
@@ -101,6 +102,17 @@ def test_method_default_get():
             json={},
             timeout=1.0,
         )
+
+
+def test_parse_domain():
+    """
+    Test that the parse_domain function only returns the domain without the port.
+    """
+    url = "http://example.com:443/body"
+    domain = parse_domain(url)
+
+    assert domain == "example.com"
+
 
 if __name__ == "__main__":
     pytest.main()
