@@ -82,3 +82,8 @@ python -m pytest tests.py
 **Issue:**The `load_config` function did not validate the endpoint config causing a KeyError.
 
 **Fix:**Added validation for the `name` and `url` fields in the `load_config` function. If either is missing, the function returns None.
+
+### 8. Improved command line interface
+**Issue:**The command-line interface did not allow for customization of monitoring parameters and a help message.
+
+**Fix:**Added a help message and allowed customization of monitoring parameters.

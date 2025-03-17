@@ -2,8 +2,7 @@ from unittest.mock import mock_open, patch
 
 import pytest
 
-from monitor import (check_health, load_config, parse_domain,
-                     validate_endpoint_config)
+from monitor import check_health, load_config, parse_domain, validate_endpoint_config
 
 
 def test_yaml_endpoint_config():

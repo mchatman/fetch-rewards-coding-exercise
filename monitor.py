@@ -1,3 +1,4 @@
+import argparse
 import json
 import logging
 import time
@@ -153,14 +154,16 @@ def monitor_endpoints(file_path: str) -> None:
 
 # Entry point of the program
 if __name__ == "__main__":
-    import sys
+    parser = argparse.ArgumentParser(
+        description="Monitor the availability of endpoints based on a YAML configuration file.",
+    )
+    parser.add_argument(
+        "config_file", type=str, help="Path to the YAML configuration file."
+    )
 
-    if len(sys.argv) != 2:
-        logger.error("Usage: python monitor.py <config_file_path>")
-        sys.exit(1)
+    args = parser.parse_args()
 
-    config_file = sys.argv[1]
     try:
-        monitor_endpoints(config_file)
+        monitor_endpoints(args.config_file)
     except KeyboardInterrupt:
         logger.info("\nMonitoring stopped by user.")
