@@ -14,6 +14,10 @@ cd fetch-rewards-coding-exercise
 ```bash
 python -m venv venv
 source venv/bin/activate (on Linux/Mac)
+```
+
+```bash
+python -m venv venv
 .\venv\Scripts\activate (on Windows)
 ```
 
@@ -25,7 +29,7 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-python monitor.py <config_file_path>
+python monitor.py config.yaml
 ```
 
 ## Configuration
