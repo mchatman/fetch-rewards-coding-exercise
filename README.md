@@ -10,16 +10,16 @@ git clone https://github.com/mchatman/fetch-rewards-coding-exercise.git
 cd fetch-rewards-coding-exercise
 ```
 
-2. Install required dependencies
-```bash
-pip install -r requirements.txt
-```
-
-3. Create a virtual environment
+2. Create a virtual environment
 ```bash
 python -m venv venv
 source venv/bin/activate (on Linux/Mac)
 .\venv\Scripts\activate (on Windows)
+```
+
+3. Install required dependencies
+```bash
+pip install -r requirements.txt
 ```
 
 ## Usage
