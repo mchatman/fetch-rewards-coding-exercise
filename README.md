@@ -49,14 +49,14 @@ python -m pytest tests.py
 ## Issues Identified and Changes Made
 
 ### 1. Deserialize JSON body failure
-**Issue:**The `body` field in the configuration was not being deserialized as JSON before being passed to the `requests` library.
+**Issue:**The `body` field in the configuration was not being deserialized as JSON before being sent in a HTTP request.
 
-**Fix:**Deserialized the `body` field as JSON using the json library before passing it to the `requests` library.
+**Fix:**Deserialized the `body` field as JSON before sending it in a HTTP request.
 
 ### 2. Default method not specified
-**Issue:**The `method` field may not be specified, so the default method was not being used in the `check_health` function.
+**Issue:**The `method` field may not be specified, so the default method was not being used when sending the HTTP request.
 
-**Fix:**Specified the default method as GET.
+**Fix:**Specified the default method as GET in the method variable.
 
 ### 3. Handle invalid YAML endpoint config
 **Issue:**The `load_config` function did not handle invalid YAML endpoint configs.
@@ -69,7 +69,7 @@ python -m pytest tests.py
 **Fix:**Replaced all print statements with logging including log levels and structured output.
 
 ### 5. Removes port from domain
-**Issue:**The `parse_domain` function handles removing ports in the URL, causing the same domain to be counted separately.
+**Issue:**The `parse_domain` function did not handle removing ports in the URL, causing the same domain to be counted separately.
 
 **Fix:**Created the `parse_domain` function to remove ports from the URL.
 
@@ -79,11 +79,11 @@ python -m pytest tests.py
 **Fix:**Fixed the `monitor_endpoints` function to log the availability duration accurately by accounting for the time taken to process the endpoints.
 
 ### 7. Validate endpoint config
-**Issue:**The `load_config` function did not validate the endpoint config causing a KeyError.
+**Issue:**The `load_config` function did not validate the endpoint config which may cause a KeyError for required fields that are missing.
 
-**Fix:**Added validation for the `name` and `url` fields in the `load_config` function. If either is missing, the function returns None.
+**Fix:**Added validation for the `name` and `url` fields in the `load_config` function. If either is missing, logs the missing fields and returns None.
 
 ### 8. Improved command line interface
 **Issue:**The command-line interface did not allow for customization of monitoring parameters and a help message.
 
-**Fix:**Added a help message and allowed customization of monitoring parameters.
+**Fix:**Added a help message and allowed customization of monitoring parameters using argparse.
