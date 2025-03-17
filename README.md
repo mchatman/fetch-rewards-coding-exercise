@@ -11,14 +11,16 @@ cd fetch-rewards-coding-exercise
 ```
 
 2. Create a virtual environment
+(on Linux/Mac)
 ```bash
 python -m venv venv
-source venv/bin/activate (on Linux/Mac)
+source venv/bin/activate
 ```
 
+(on Windows)
 ```bash
 python -m venv venv
-.\venv\Scripts\activate (on Windows)
+.\venv\Scripts\activate
 ```
 
 3. Install required dependencies
