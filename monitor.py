@@ -92,7 +92,7 @@ def check_health(endpoint: Dict[str, Any]) -> str:
 
     try:
         response = requests.request(
-            method=method, url=url, headers=headers, json=body, timeout=1.0
+            method=method, url=url, headers=headers, json=body, timeout=REQUEST_TIMEOUT
         )
 
         response_time = time.time() - start_time
@@ -113,7 +113,8 @@ def check_health(endpoint: Dict[str, Any]) -> str:
             )
             logger.info(f"Endpoint '{name}' is DOWN ({reason})")
             return "DOWN"
-    except requests.RequestException:
+    except requests.RequestException as e:
+        logger.error(f"Endpoint '{name}' is DOWN (Exception: {str(e)})")
         return "DOWN"
 
 
